@@ -66,12 +66,12 @@ int main(void)
     pthread_t ta, tb;
 
     // Create the semaphore
-    if ((a_arrived = sem_open_temp("sem_prog3.3", 0)) == SEM_FAILED) {
+    if ((a_arrived = sem_open_temp("sem_prog3.3_a", 0)) == SEM_FAILED) {
         perror("sem_open_temp");
         return 1;
     }
 
-    if ((b_arrived = sem_open_temp("sem_prog3.3", 0)) == SEM_FAILED) {
+    if ((b_arrived = sem_open_temp("sem_prog3.3_b", 0)) == SEM_FAILED) {
         perror("sem_open_temp");
         return 1;
     }

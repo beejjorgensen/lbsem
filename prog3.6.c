@@ -66,4 +66,5 @@ int main(void)
 
     // Close the semaphore
     sem_close(mutex);
+    sem_close(barrier);
 }

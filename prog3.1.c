@@ -4,8 +4,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define SEM_NAME "sem_prog3.1"
-
 sem_t *sem;
 
 void *thread_a(void *arg)
@@ -34,20 +32,31 @@ void *thread_b(void *arg)
     return NULL;
 }
 
+sem_t *sem_open_temp(const char *name, int value)
+{
+    sem_t *sem;
+
+    // Create the semaphore
+    if ((sem = sem_open(name, O_CREAT, 0666, value)) == SEM_FAILED)
+        return SEM_FAILED;
+
+    // Unlink it so it will go away after this process exits
+    if (sem_unlink(name) == -1) {
+        sem_close(sem);
+        return SEM_FAILED;
+    }
+
+    return sem;
+}
+
 int main(void)
 {
     pthread_t ta, tb;
 
     // Create the semaphore
-    if ((sem = sem_open(SEM_NAME, O_CREAT, 0666, 0)) == SEM_FAILED) {
-        perror("sem_open");
+    if ((sem = sem_open_temp("sem_prog3.1", 0)) == SEM_FAILED) {
+        perror("sem_open_temp");
         return 1;
-    }
-
-    // Unlink it so it will go away after this process exits
-    if (sem_unlink(SEM_NAME) == -1) {
-        perror("sem_unlink");
-        return 2;
     }
 
     // Make both threads--make them in the wrong order to encourage "b"

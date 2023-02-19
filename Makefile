@@ -1,6 +1,6 @@
 CC=gcc
 CCOPTS=-Wall -Wextra
-LIBS=
+LIBS=-lpthread
 
 SRCS=$(wildcard *.c)
 TARGETS=$(SRCS:.c=)

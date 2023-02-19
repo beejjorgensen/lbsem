@@ -52,9 +52,8 @@ void *threads(void *arg)
 
         sem_wait(mutex);
         count = count - 1;
-        if (count == 0) {
+        if (count == 0)
             sem_post_count(turnstile2, n);  // unlock the second
-        }
         sem_post(mutex);
 
         sem_wait(turnstile2);               // second turnstile

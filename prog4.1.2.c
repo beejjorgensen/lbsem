@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -6,8 +8,8 @@
 
 sem_t *mutex, *items;
 
-const int n = 10;  // Number of threads
-int count = 0;
+const int pn = 20, cn = 50;  // Number of threads
+const int production_count = 10;
 
 sem_t *sem_open_temp(const char *name, int value)
 {
@@ -40,7 +42,7 @@ void add_event(int val)
     assert(node);
 
     node->val = val;
-    node->next = head;
+    node->next = NULL;
 
     if (head == NULL) {
         head = tail = node;
@@ -52,12 +54,12 @@ void add_event(int val)
 
 int get_event(void)
 {
-    assert(head != NULL);
+    if (head == NULL) return -999;
 
-    struct node *node = *head;
+    struct node *node = head;
     int val = node->val;
 
-    *head = (*head)->next;
+    head = head->next;
 
     free(node);
 
@@ -68,42 +70,68 @@ void *thread_producer(void *arg)
 {
     int *tid = arg;
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < production_count; i++) {
         int event = *tid * 100 + i;
+        //usleep(0.5*1000*1000);
         sem_wait(mutex);
         add_event(event);
-        sem_post(items);
         sem_post(mutex);
+        sem_post(items);
+        printf("P%d: added event %d\n", *tid, event);
     }
+
+    return NULL;
 }
 
 void *thread_consumer(void *arg)
 {
     int *tid = arg;
+    int done = 0;
 
-    TODO
+    while (!done) {
+        sem_wait(items);
+        sem_wait(mutex);
+        int event = get_event();
+        sem_post(mutex);
+        printf("C%d: got event %d\n", *tid, event);
+        if (event == -999) done = 1;
+    }
+
+    return NULL;
 }
 
 int main(void)
 {
-    pthread_t t[n];
-    int tid[n];
+    pthread_t pt[pn], ct[cn];
+    int ptid[pn], ctid[cn];
 
     // Create the semaphore
     mutex = sem_open_temp("sem_prog4.1.2_m", 1);
     items = sem_open_temp("sem_prog4.1.2_i", 0);
 
-    TODO
+    // Create producer threads
+    for (int i = 0; i < pn; i++) {
+        ptid[i] = i;
+        pthread_create(pt + i, NULL, thread_producer, ptid + i);
+    }
 
-    // Create threads
-    for (int i = 0; i < n; i++) {
-        tid[i] = i;
-        pthread_create(t + i, NULL, threads, tid + i);
+    // Create consumer threads
+    for (int i = 0; i < cn; i++) {
+        ctid[i] = i;
+        pthread_create(ct + i, NULL, thread_consumer, ctid + i);
     }
 
     // Wait for completion
-    for (int i = 0; i < n; i++)
-        pthread_join(t[i], NULL);
+    for (int i = 0; i < pn; i++)
+        pthread_join(pt[i], NULL);
+
+    // After producers are done, post to wake up the consumers
+    for (int i = 0; i < cn; i++)
+        sem_post(items);
+
+    // Wait for completion
+    for (int i = 0; i < cn; i++)
+        pthread_join(ct[i], NULL);
 
     // Close the semaphore
     sem_close(mutex);
